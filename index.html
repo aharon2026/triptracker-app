@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#5b21b6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TripTracker">
+<title>TripTracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --violet:#7c3aed; --violet-d:#5b21b6; --indigo:#4f46e5; --teal:#14b8a6;
+  --pink:#ec4899; --amber:#f59e0b; --green:#10b981; --red:#ef4444; --blue:#3b82f6;
+  --bg:#0f0b1e; --surface:#181231; --surface2:#211a3d; --line:rgba(255,255,255,.08);
+  --text:#f4f2ff; --muted:#9b94c0; --muted2:#6f6896;
+  --bg-from:#1c1440; --bg-to:#0f0b1e; --navbg:rgba(24,18,49,.9);
+  --grad:linear-gradient(135deg,#7c3aed 0%,#5b21b6 55%,#4f46e5 100%);
+  --grad-teal:linear-gradient(135deg,#14b8a6,#0ea5e9);
+  --grad-amber:linear-gradient(135deg,#f59e0b,#ec4899);
+  --shadow:0 10px 30px rgba(0,0,0,.45);
+}
+body.light{
+  --bg:#f3f1fb; --surface:#ffffff; --surface2:#ffffff; --line:rgba(28,21,64,.09);
+  --text:#1c1540; --muted:#6c6690; --muted2:#9890ba;
+  --bg-from:#ece8fb; --bg-to:#f7f6fd; --navbg:rgba(255,255,255,.88);
+  --shadow:0 10px 26px rgba(91,33,182,.12);
+}
+body.light .nav{box-shadow:0 -4px 18px rgba(91,33,182,.08)}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;font-family:'Rubik',system-ui,sans-serif}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);overflow:hidden}
+#app{max-width:460px;margin:0 auto;height:100dvh;background:radial-gradient(120% 60% at 50% 0%,var(--bg-from) 0%,var(--bg-to) 60%);position:relative;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 60px rgba(124,58,237,.25)}
+.screen{flex:1;overflow-y:auto;overflow-x:hidden;padding:0 18px 120px;scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}
+.hidden{display:none!important}
+
+.topbar{padding:calc(env(safe-area-inset-top) + 22px) 20px 16px;position:relative}
+.topbar .hi{color:var(--muted);font-size:.84rem}
+.topbar .name{font-size:1.45rem;font-weight:700;margin-top:2px}
+.topbar .av{position:absolute;top:calc(env(safe-area-inset-top) + 22px);left:20px;width:44px;height:44px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:1.3rem;box-shadow:0 6px 16px rgba(124,58,237,.5)}
+
+.hero{margin:6px 18px 4px;border-radius:26px;padding:22px;background:var(--grad);position:relative;overflow:hidden;box-shadow:0 16px 40px rgba(91,33,182,.55)}
+.hero::after{content:"";position:absolute;top:-40px;left:-30px;width:160px;height:160px;background:rgba(255,255,255,.12);border-radius:50%}
+.hero::before{content:"";position:absolute;bottom:-50px;right:-20px;width:120px;height:120px;background:rgba(255,255,255,.08);border-radius:50%}
+.hero .lbl{font-size:.8rem;opacity:.85;position:relative}
+.hero .bal{font-size:2.3rem;font-weight:800;margin-top:4px;position:relative;letter-spacing:-1px}
+.hero .sub{display:flex;gap:18px;margin-top:16px;position:relative}
+.hero .sub div{flex:1}
+.hero .sub .k{font-size:.72rem;opacity:.8}
+.hero .sub .v{font-size:1.05rem;font-weight:700;margin-top:2px}
+
+.sec-h{display:flex;align-items:center;justify-content:space-between;margin:24px 2px 12px}
+.sec-h h2{font-size:1.05rem;font-weight:700}
+.sec-h a{color:var(--violet);font-size:.8rem;font-weight:600;background:none;border:none}
+
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:15px;position:relative;overflow:hidden}
+.kpi .ic{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;margin-bottom:10px}
+.kpi .k{color:var(--muted);font-size:.76rem}
+.kpi .v{font-size:1.35rem;font-weight:700;margin-top:3px;letter-spacing:-.5px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:18px;margin-bottom:14px}
+.card h3{font-size:.95rem;font-weight:600;margin-bottom:14px}
+
+/* open trip card */
+.opentrip{background:linear-gradient(135deg,rgba(245,158,11,.18),rgba(236,72,153,.12));border:1px solid rgba(245,158,11,.4);border-radius:20px;padding:15px;margin-bottom:12px;display:flex;align-items:center;gap:13px}
+.opentrip .ic{width:46px;height:46px;border-radius:14px;background:var(--grad-amber);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0}
+.opentrip .mid{flex:1;min-width:0}
+.opentrip .t1{font-weight:700;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.opentrip .t2{color:var(--amber);font-size:.76rem;margin-top:3px;font-weight:600}
+.btn-finish{background:var(--grad-amber);color:#fff;border:none;border-radius:12px;padding:10px 14px;font-size:.82rem;font-weight:700;font-family:inherit;flex-shrink:0;white-space:nowrap}
+.btn-finish:active{transform:scale(.95)}
+
+.tx{display:flex;align-items:center;gap:13px;padding:13px 4px;border-bottom:1px solid var(--line)}
+.tx:last-child{border-bottom:none}
+.tx .ic{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0}
+.tx .mid{flex:1;min-width:0}
+.tx .mid .t1{font-weight:600;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+.tx .mid .t2{color:var(--muted);font-size:.76rem;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx .amt{font-weight:700;font-size:.95rem;white-space:nowrap}
+.tx .amt.pos{color:var(--green)} .tx .amt.neg{color:var(--text)}
+.tx .edit{color:var(--muted2);font-size:1.1rem;flex-shrink:0}
+.badge{font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:20px;background:rgba(245,158,11,.2);color:var(--amber)}
+.mini{background:var(--grad-amber);color:#fff;border:none;border-radius:10px;padding:7px 11px;font-size:.74rem;font-weight:700;font-family:inherit;flex-shrink:0}
+.empty{text-align:center;padding:46px 20px;color:var(--muted2)}
+.empty .e{font-size:3rem;margin-bottom:10px;opacity:.5}
+
+.segf{display:flex;gap:8px;overflow-x:auto;padding:4px 0 6px;scrollbar-width:none}
+.segf::-webkit-scrollbar{display:none}
+.segf button{flex-shrink:0;background:var(--surface);border:1px solid var(--line);color:var(--muted);padding:8px 15px;border-radius:20px;font-size:.82rem;font-weight:600;font-family:inherit}
+.segf button.on{background:var(--grad);color:#fff;border-color:transparent}
+
+.nav{position:absolute;bottom:0;left:0;right:0;height:calc(70px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:var(--navbg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-around;z-index:40}
+.nav button{background:none;border:none;color:var(--muted2);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:.66rem;font-family:inherit;font-weight:600;width:60px}
+.nav button svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.nav button.on{color:var(--violet)}
+.nav .spacer{width:60px}
+
+.fab{position:absolute;bottom:calc(50px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:62px;height:62px;border-radius:50%;background:var(--grad);border:4px solid var(--bg);box-shadow:0 8px 24px rgba(124,58,237,.6);display:flex;align-items:center;justify-content:center;z-index:45}
+.fab svg{width:28px;height:28px;stroke:#fff;stroke-width:2.5;fill:none;stroke-linecap:round}
+.fab:active{transform:translateX(-50%) scale(.92)}
+
+.overlay{position:absolute;inset:0;background:rgba(0,0,0,.6);z-index:60;opacity:0;pointer-events:none;transition:.25s}
+.overlay.show{opacity:1;pointer-events:auto}
+.auth-gate{position:fixed;inset:0;z-index:500;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px}
+.auth-gate.hidden{display:none}
+.auth-box{width:100%;max-width:340px;text-align:center}
+.auth-box .logo{font-size:2.6rem;margin-bottom:6px}
+.auth-box h1{font-size:1.3rem;margin-bottom:6px}
+.auth-box p{color:var(--muted);font-size:.88rem;margin-bottom:20px;line-height:1.5}
+.auth-box .field{text-align:right}
+.auth-box .err{color:#ef4444;font-size:.82rem;margin-top:8px;min-height:1.1em}
+.auth-box .lnk{display:inline-block;margin-top:14px;color:var(--violet);font-size:.85rem;cursor:pointer}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface2);border-radius:28px 28px 0 0;padding:10px 20px calc(26px + env(safe-area-inset-bottom));z-index:65;transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);max-height:92%;overflow-y:auto;scrollbar-width:none}
+.sheet::-webkit-scrollbar{display:none}
+.sheet.show{transform:translateY(0)}
+.grab{width:42px;height:5px;background:var(--muted2);border-radius:3px;margin:6px auto 14px;opacity:.5}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.sheet-head h2{font-size:1.15rem;font-weight:700}
+.sheet-x{width:34px;height:34px;border-radius:50%;background:var(--surface);border:1px solid var(--line);color:var(--muted);font-size:1rem;display:flex;align-items:center;justify-content:center;font-family:inherit;flex-shrink:0}
+.sheet-x:active{transform:scale(.9)}
+.sub-h{font-size:.8rem;font-weight:700;color:var(--violet);margin:6px 0 12px;display:flex;align-items:center;gap:7px}
+.sub-h::after{content:"";flex:1;height:1px;background:var(--line)}
+
+.types{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:8px;margin-bottom:18px}
+.types button{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 4px;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:.68rem;color:var(--muted);font-family:inherit;font-weight:600}
+.types button .e{font-size:1.4rem}
+.types button.on{background:var(--grad);color:#fff;border-color:transparent}
+
+.field{margin-bottom:14px}
+.field label{display:block;font-size:.8rem;color:var(--muted);margin-bottom:7px;font-weight:500}
+.field input,.field select,.field textarea{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px 15px;color:var(--text);font-size:1rem;font-family:inherit}
+.field textarea{min-height:62px;resize:vertical}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--violet)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+.fuelbar{display:flex;gap:5px}
+.fuelbar button{flex:1;height:42px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--muted2);font-size:.8rem;font-weight:700;font-family:inherit;transition:.12s}
+.fuelbar button.on{background:var(--grad-teal);color:#fff;border-color:transparent;transform:scaleY(1.12)}
+
+.pay{display:flex;gap:8px;flex-wrap:wrap}
+.pay button{background:var(--surface);border:1px solid var(--line);color:var(--muted);padding:9px 16px;border-radius:14px;font-size:.85rem;font-weight:600;font-family:inherit}
+.pay button.on{background:var(--grad);color:#fff;border-color:transparent}
+
+.btn-save{width:100%;background:var(--grad);color:#fff;border:none;border-radius:16px;padding:16px;font-size:1.02rem;font-weight:700;font-family:inherit;margin-top:8px;box-shadow:0 8px 20px rgba(124,58,237,.45)}
+.btn-save:active{transform:scale(.98)}
+.btn-del{width:100%;background:none;color:var(--red);border:1px solid rgba(239,68,68,.3);border-radius:16px;padding:13px;font-size:.92rem;font-weight:600;font-family:inherit;margin-top:10px}
+
+.toast{position:absolute;bottom:calc(95px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--green);color:#fff;padding:12px 22px;border-radius:30px;font-weight:600;font-size:.9rem;z-index:80;opacity:0;transition:.3s;box-shadow:var(--shadow);white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--red)}
+
+.set-row{display:flex;align-items:center;gap:13px;padding:15px 4px;border-bottom:1px solid var(--line)}
+.set-row:last-child{border-bottom:none}
+.set-row .ic{width:40px;height:40px;border-radius:12px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:1.1rem}
+.set-row .mid{flex:1}
+.set-row .mid .t1{font-weight:600;font-size:.92rem}
+.set-row .mid .t2{color:var(--muted);font-size:.76rem;margin-top:2px}
+.set-row .arrow{color:var(--muted2)}
+
+.fade-in{animation:fade .4s ease}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="auth-gate hidden" id="authGate">
+  <div class="auth-box">
+    <div class="logo">🔐</div>
+    <div id="authStep1">
+      <h1>כניסה ל-TripTracker</h1>
+      <p>כדי להגן על הנתונים שלך, יש להתחבר עם כתובת המייל שלך. נשלח אליך קוד חד-פעמי.</p>
+      <div class="field"><label>כתובת מייל</label><input id="authEmail" type="email" inputmode="email" placeholder="you@example.com" value="tzagshama2026@gmail.com"></div>
+      <button class="btn-save" id="authSendBtn" onclick="authSendCode()">שליחת קוד למייל</button>
+      <div class="err" id="authErr1"></div>
+    </div>
+    <div id="authStep2" class="hidden">
+      <h1>הזן קוד</h1>
+      <p>שלחנו קוד לכתובת <b id="authEmailShown"></b>. הזן אותו בדיוק כפי שהתקבל במייל:</p>
+      <div class="field"><label>קוד</label><input id="authCode" type="text" inputmode="numeric" maxlength="12" placeholder="123456" autocomplete="one-time-code"></div>
+      <button class="btn-save" id="authVerifyBtn" onclick="authVerifyCode()">אימות והתחברות</button>
+      <div class="err" id="authErr2"></div>
+      <span class="lnk" onclick="authBackToEmail()">שינוי כתובת מייל / שליחה חוזרת</span>
+    </div>
+  </div>
+</div>
+<div id="app">
+
+  <div class="screen" id="screen-home">
+    <div class="topbar">
+      <div class="av">🚗</div>
+      <div class="hi" id="greeting">שלום 👋</div>
+      <div class="name" id="homeCar">הרכב שלי</div>
+    </div>
+
+    <div class="hero">
+      <div class="lbl">מאזן נטו (הכנסות פחות הוצאות)</div>
+      <div class="bal" id="heroBal">₪0</div>
+      <div class="sub">
+        <div><div class="k">💰 הכנסות</div><div class="v" id="heroInc">₪0</div></div>
+        <div><div class="k">💸 הוצאות</div><div class="v" id="heroExp">₪0</div></div>
+        <div><div class="k">🛣️ ק"מ</div><div class="v" id="heroKm">0</div></div>
+      </div>
+    </div>
+
+    <div id="backupWrap"></div>
+    <div id="goalWrap"></div>
+    <div id="openWrap"></div>
+
+    <div class="sec-h"><h2>סקירה</h2></div>
+    <div class="kpis" id="kpiGrid"></div>
+
+    <div class="sec-h"><h2>הכנסות מול הוצאות</h2></div>
+    <div class="card"><canvas id="chartMain" height="170"></canvas></div>
+
+    <div class="sec-h"><h2>פילוח הוצאות</h2></div>
+    <div class="card"><canvas id="chartBreak" height="170"></canvas></div>
+
+    <div class="sec-h">
+      <h2>פעילות אחרונה</h2>
+      <a onclick="go('history')">הצג הכל</a>
+    </div>
+    <div class="card" id="recentList"></div>
+  </div>
+
+  <div class="screen hidden" id="screen-history">
+    <div class="topbar"><div class="name">היסטוריה</div><div class="hi">הקש על רשומה כדי לערוך אותה</div></div>
+    <div class="segf" id="histFilter">
+      <button class="on" data-f="all">הכל</button>
+      <button data-f="trip">🛣️ נסיעות</button>
+      <button data-f="delivery">📦 משלוחים</button>
+      <button data-f="fuel">⛽ תדלוקים</button>
+      <button data-f="wash">🧼 שטיפות</button>
+      <button data-f="expense">💸 הוצאות</button>
+    </div>
+    <div class="row2" style="margin-top:8px">
+      <div class="field"><label>מתאריך</label><input id="histFrom" type="date" onchange="renderHistory()"></div>
+      <div class="field"><label>עד תאריך</label><input id="histTo" type="date" onchange="renderHistory()"></div>
+    </div>
+    <div style="text-align:left;margin-bottom:6px"><a onclick="clearHistDates()" style="color:var(--violet);font-size:.8rem;font-weight:600">איפוס תאריכים</a></div>
+    <div class="card" id="historyList"></div>
+  </div>
+
+  <div class="screen hidden" id="screen-stats">
+    <div class="topbar"><div class="name">סטטיסטיקות</div><div class="hi">ניתוח הוצאות הרכב</div></div>
+    <div class="kpis" id="statKpis"></div>
+    <div class="sec-h"><h2>אמצעי תשלום</h2></div>
+    <div class="card"><canvas id="chartPay" height="180"></canvas></div>
+    <div class="sec-h"><h2>צריכת דלק</h2></div>
+    <div class="card" id="fuelStats"></div>
+    <div class="sec-h"><h2>דוח לפי תקופה</h2></div>
+    <div class="segf" id="reportPeriod">
+      <button class="on" data-p="week">שבועי</button>
+      <button data-p="month">חודשי</button>
+    </div>
+    <div class="card" id="reportList" style="margin-top:8px"></div>
+  </div>
+
+  <div class="screen hidden" id="screen-settings">
+    <div class="topbar"><div class="name">הגדרות</div><div class="hi">ניהול האפליקציה</div></div>
+    <div class="card">
+      <div class="set-row" onclick="renameCar()"><div class="ic">🚙</div><div class="mid"><div class="t1">שם הרכב</div><div class="t2" id="setCarName">הרכב שלי</div></div><div class="arrow">✏️</div></div>
+      <div class="set-row" onclick="openThemePicker()"><div class="ic">🎨</div><div class="mid"><div class="t1">ערכת נושא</div><div class="t2" id="themeLabel">אוטומטי (לפי שעה)</div></div><div class="arrow">›</div></div>
+      <div class="set-row" onclick="setGoal('daily')"><div class="ic">🎯</div><div class="mid"><div class="t1">יעד הכנסה יומי</div><div class="t2" id="goalDailyTxt">לא הוגדר</div></div><div class="arrow">✏️</div></div>
+      <div class="set-row" onclick="setGoal('weekly')"><div class="ic">🏆</div><div class="mid"><div class="t1">יעד הכנסה שבועי</div><div class="t2" id="goalWeeklyTxt">לא הוגדר</div></div><div class="arrow">✏️</div></div>
+      <div class="set-row" onclick="exportExcel()"><div class="ic">📊</div><div class="mid"><div class="t1">ייצוא קריא (Excel)</div><div class="t2">קובץ מסודר עם כותרות בעברית - נוח לצפייה</div></div><div class="arrow">›</div></div>
+      <div class="set-row" onclick="exportData()"><div class="ic">📤</div><div class="mid"><div class="t1">ייצוא נתונים (גיבוי טכני)</div><div class="t2">קובץ JSON לשחזור מלא - לא לקריאה</div></div><div class="arrow">›</div></div>
+      <div class="set-row" onclick="document.getElementById('importFile').click()"><div class="ic">📥</div><div class="mid"><div class="t1">ייבוא נתונים</div><div class="t2">שחזור מגיבוי (קובץ JSON)</div></div><div class="arrow">›</div></div>
+      <div class="set-row" onclick="toggleDemo()"><div class="ic">✨</div><div class="mid"><div class="t1" id="demoT1">טען נתוני דוגמה</div><div class="t2" id="demoT2">כדי לראות איך זה נראה מלא</div></div><div class="arrow">›</div></div>
+      <div class="set-row" onclick="clearData()"><div class="ic">🗑️</div><div class="mid"><div class="t1" style="color:var(--red)">מחיקת כל הנתונים</div><div class="t2">איפוס מלא</div></div><div class="arrow">›</div></div>
+      <div class="set-row" onclick="authLogout()"><div class="ic">🔒</div><div class="mid"><div class="t1">התנתקות</div><div class="t2">יציאה מהחשבון בענן במכשיר הזה</div></div><div class="arrow">›</div></div>
+    </div>
+    <div class="card">
+      <div class="set-row"><div class="ic">📲</div><div class="mid"><div class="t1">התקנה על הטלפון</div><div class="t2">בדפדפן הטלפון: שתף › הוסף למסך הבית</div></div></div>
+      <div class="set-row"><div class="ic">☁️</div><div class="mid"><div class="t1">סנכרון ענן</div><div class="t2">הנתונים נשמרים בענן ומסתנכרנים בין מכשירים</div></div><div class="arrow" id="cloudDot">…</div></div>
+      <div class="set-row"><div class="ic">🤖</div><div class="mid"><div class="t1">בוט טלגרם</div><div class="t2">בקרוב — תיעוד נסיעות בצ'אט</div></div></div>
+    </div>
+    <input type="file" id="importFile" accept=".json" class="hidden" onchange="importData(event)">
+    <div style="text-align:center;color:var(--muted2);font-size:.75rem;margin-top:10px">TripTracker · גרסה 1.1</div>
+  </div>
+
+  <div class="fab" onclick="openSheet()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+
+  <div class="nav">
+    <button class="on" data-s="home" onclick="go('home')"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10"/></svg>בית</button>
+    <button data-s="history" onclick="go('history')"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>היסטוריה</button>
+    <div class="spacer"></div>
+    <button data-s="stats" onclick="go('stats')"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>סטטיסטיקה</button>
+    <button data-s="settings" onclick="go('settings')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.4 1a7 7 0 0 0-1.7-1l-.3-2.5h-4l-.3 2.5a7 7 0 0 0-1.7 1l-2.4-1-2 3.5 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.4-1a7 7 0 0 0 1.7 1l.3 2.5h4l.3-2.5a7 7 0 0 0 1.7-1l2.4 1 2-3.5-2-1.5a7 7 0 0 0 .1-1z"/></svg>הגדרות</button>
+  </div>
+
+  <div class="overlay" id="overlay" onclick="closeSheet()"></div>
+  <div class="sheet" id="sheet">
+    <div class="grab"></div>
+    <div class="sheet-head"><h2 id="sheetTitle">הוספת רשומה</h2><button class="sheet-x" onclick="closeSheet()" aria-label="סגירה">✕</button></div>
+    <div class="types" id="typeSel">
+      <button class="on" data-t="trip"><span class="e">🛣️</span>נסיעה</button>
+      <button data-t="delivery"><span class="e">📦</span>משלוח</button>
+      <button data-t="fuel"><span class="e">⛽</span>תדלוק</button>
+      <button data-t="wash"><span class="e">🧼</span>שטיפה</button>
+      <button data-t="expense"><span class="e">💸</span>הוצאה</button>
+    </div>
+    <div id="formBody"></div>
+    <button class="btn-save" id="saveBtn" onclick="saveRecord()">שמירה</button>
+    <button class="btn-del hidden" id="delBtn" onclick="deleteCurrent()">מחיקת הרשומה</button>
+  </div>
+
+  <div class="overlay" id="themeOverlay" onclick="closeThemePicker()"></div>
+  <div class="sheet" id="themeSheet" style="max-height:50%">
+    <div class="grab"></div>
+    <div class="sheet-head"><h2>ערכת נושא</h2><button class="sheet-x" onclick="closeThemePicker()" aria-label="סגירה">✕</button></div>
+    <div id="themeOptions"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+const KEY='triptracker_v1';
+let DB=load();
+function load(){try{return Object.assign(blank(),JSON.parse(localStorage.getItem(KEY)))}catch(e){return blank()}}
+function blank(){return{car:'הרכב שלי',goalDaily:0,goalWeekly:0,trips:[],delivery:[],fuel:[],wash:[],expense:[]}}
+function save(){localStorage.setItem(KEY,JSON.stringify(DB))}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+const COL={trip:'trips',delivery:'delivery',fuel:'fuel',wash:'wash',expense:'expense'};
+
+// ===== Supabase cloud sync =====
+const SUPA_URL='https://wrpbplacymsxmyiqlrrv.supabase.co';
+const SUPA_KEY='sb_publishable_eupowMJFZcYCL-P8eR69mA_LEDxVWZb';
+const SUPA_ON=!!(SUPA_URL && SUPA_KEY);
+const SUPA_H={apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY,'Content-Type':'application/json'};
+let cloudOK=false;
+
+// ===== Real user authentication (Supabase Auth, email one-time code) =====
+// Replaces the old model of a fixed secret baked into the client JS (visible to
+// anyone who viewed the page source). Now the server itself verifies who you are:
+// you request a one-time code by email, and only a valid signed session lets
+// requests through Row Level Security. Nothing secret is stored in this file.
+const AUTH_KEY='tt_auth';
+function authGet(){try{return JSON.parse(localStorage.getItem(AUTH_KEY))}catch(e){return null}}
+function authSet(s){localStorage.setItem(AUTH_KEY,JSON.stringify(s))}
+function authClear(){localStorage.removeItem(AUTH_KEY)}
+function authApplyToken(tok){SUPA_H.Authorization='Bearer '+tok;}
+async function authRefresh(refresh_token){
+  try{
+    const r=await fetch(SUPA_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',
+      headers:{apikey:SUPA_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({refresh_token})});
+    if(!r.ok)return false;
+    const j=await r.json();
+    authSet({access_token:j.access_token,refresh_token:j.refresh_token,expires_at:Date.now()+((j.expires_in||3600)*1000)});
+    authApplyToken(j.access_token);
+    return true;
+  }catch(e){return false}
+}
+async function ensureAuth(){
+  const s=authGet();
+  if(!s)return false;
+  if(s.expires_at && s.expires_at-Date.now()>60000){authApplyToken(s.access_token);return true;}
+  if(s.refresh_token)return await authRefresh(s.refresh_token);
+  return false;
+}
+function showAuthGate(){document.getElementById('authGate').classList.remove('hidden');}
+function hideAuthGate(){document.getElementById('authGate').classList.add('hidden');}
+async function authSendCode(){
+  const email=(document.getElementById('authEmail').value||'').trim();
+  const errEl=document.getElementById('authErr1');
+  errEl.textContent='';
+  if(!email||!email.includes('@')){errEl.textContent='נא להזין כתובת מייל תקינה';return;}
+  const btn=document.getElementById('authSendBtn');btn.disabled=true;btn.textContent='שולח...';
+  try{
+    const r=await fetch(SUPA_URL+'/auth/v1/otp',{method:'POST',
+      headers:{apikey:SUPA_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({email,create_user:true})});
+    if(!r.ok){const j=await r.json().catch(()=>({}));errEl.textContent=j.msg||j.error_description||'שליחת הקוד נכשלה, נסה שוב';btn.disabled=false;btn.textContent='שליחת קוד למייל';return;}
+    document.getElementById('authEmailShown').textContent=email;
+    document.getElementById('authStep1').classList.add('hidden');
+    document.getElementById('authStep2').classList.remove('hidden');
+  }catch(e){errEl.textContent='שגיאת רשת, נסה שוב';}
+  btn.disabled=false;btn.textContent='שליחת קוד למייל';
+}
+async function authVerifyCode(){
+  const email=(document.getElementById('authEmail').value||'').trim();
+  const code=(document.getElementById('authCode').value||'').trim();
+  const errEl=document.getElementById('authErr2');
+  errEl.textContent='';
+  if(!code){errEl.textContent='נא להזין את הקוד שהתקבל';return;}
+  const btn=document.getElementById('authVerifyBtn');btn.disabled=true;btn.textContent='מאמת...';
+  try{
+    const r=await fetch(SUPA_URL+'/auth/v1/verify',{method:'POST',
+      headers:{apikey:SUPA_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({email,token:code,type:'email'})});
+    if(!r.ok){const j=await r.json().catch(()=>({}));errEl.textContent=j.msg||j.error_description||'קוד שגוי, נסה שוב';btn.disabled=false;btn.textContent='אימות והתחברות';return;}
+    const j=await r.json();
+    authSet({access_token:j.access_token,refresh_token:j.refresh_token,expires_at:Date.now()+((j.expires_in||3600)*1000)});
+    authApplyToken(j.access_token);
+    hideAuthGate();
+    toast('התחברת בהצלחה 🔓');
+    cloudPull();
+  }catch(e){errEl.textContent='שגיאת רשת, נסה שוב';}
+  btn.disabled=false;btn.textContent='אימות והתחברות';
+}
+function authBackToEmail(){
+  document.getElementById('authStep2').classList.add('hidden');
+  document.getElementById('authStep1').classList.remove('hidden');
+  document.getElementById('authErr1').textContent='';
+  document.getElementById('authCode').value='';
+}
+function authLogout(){authClear();SUPA_H.Authorization='Bearer '+SUPA_KEY;cloudOK=false;setCloudDot();showAuthGate();}
+function setCloudDot(){const d=document.getElementById('cloudDot');if(d){d.textContent=cloudOK?'☁️ מסונכרן':(SUPA_ON?'⚠️ לא מחובר לענן':'מקומי');d.style.color=cloudOK?'var(--green)':'var(--muted2)';}}
+
+// --- pending-write queue ---------------------------------------------
+// Without this, cloudPull() below would overwrite the local DB with
+// whatever is in the cloud right now. If a record was saved locally but
+// its upload hadn't finished yet (closed the tab too fast, brief network
+// drop, etc.), the next cloudPull would silently erase it on reload —
+// this is what made open trips "disappear". So: track unsynced writes,
+// and always retry pushing them BEFORE pulling from the cloud.
+const DKEY='tt_dirty', DELKEY='tt_dirtyDel';
+function dirtyGet(){try{return JSON.parse(localStorage.getItem(DKEY))||[]}catch(e){return[]}}
+function dirtySet(a){localStorage.setItem(DKEY,JSON.stringify(a))}
+function dirtyMark(type,id){const a=dirtyGet();if(!a.find(x=>x.id===id))a.push({type,id});dirtySet(a);}
+function dirtyClear(id){dirtySet(dirtyGet().filter(x=>x.id!==id));}
+function delGet(){try{return JSON.parse(localStorage.getItem(DELKEY))||[]}catch(e){return[]}}
+function delSet(a){localStorage.setItem(DELKEY,JSON.stringify(a))}
+function delMark(id){const a=delGet();if(!a.includes(id))a.push(id);delSet(a);}
+function delClear(id){delSet(delGet().filter(x=>x!==id));}
+
+async function cloudUpsert(type,rec){
+  if(!SUPA_ON)return;
+  dirtyMark(type,rec.id);
+  try{
+    const r=await fetch(SUPA_URL+'/rest/v1/tt_records?on_conflict=id',{method:'POST',keepalive:true,
+      headers:Object.assign({},SUPA_H,{Prefer:'resolution=merge-duplicates'}),
+      body:JSON.stringify({id:rec.id,type:type,data:rec})});
+    if(r.ok)dirtyClear(rec.id);
+  }catch(e){}
+}
+async function cloudDelete(id){
+  if(!SUPA_ON)return;
+  delMark(id);
+  try{
+    const r=await fetch(SUPA_URL+'/rest/v1/tt_records?id=eq.'+encodeURIComponent(id),{method:'DELETE',keepalive:true,headers:SUPA_H});
+    if(r.ok)delClear(id);
+  }catch(e){}
+}
+async function flushDirty(){
+  if(!SUPA_ON)return;
+  for(const item of dirtyGet()){
+    const rec=(DB[COL[item.type]]||[]).find(r=>r.id===item.id);
+    if(rec)await cloudUpsert(item.type,rec);else dirtyClear(item.id);
+  }
+  for(const id of delGet()){await cloudDelete(id);}
+}
+async function cloudPull(){
+  if(!SUPA_ON)return;
+  await flushDirty();
+  try{
+    const r=await fetch(SUPA_URL+'/rest/v1/tt_records?select=id,type,data',{headers:SUPA_H});
+    if(!r.ok)throw 0;
+    const rows=await r.json();
+    const g={trips:[],delivery:[],fuel:[],wash:[],expense:[]};
+    rows.forEach(row=>{const rec=Object.assign({},row.data,{id:row.id});if(g[COL[row.type]])g[COL[row.type]].push(rec);});
+    DB.trips=g.trips;DB.delivery=g.delivery;DB.fuel=g.fuel;DB.wash=g.wash;DB.expense=g.expense;
+    const s=await fetch(SUPA_URL+'/rest/v1/tt_settings?select=key,value&key=in.(car,goalDaily,goalWeekly)',{headers:SUPA_H});
+    if(s.ok){const sv=await s.json();sv.forEach(row=>{
+      if(row.key==='car'&&row.value)DB.car=row.value;
+      else if(row.key==='goalDaily')DB.goalDaily=parseFloat(row.value)||0;
+      else if(row.key==='goalWeekly')DB.goalWeekly=parseFloat(row.value)||0;
+    });}
+    cloudOK=true;save();render();
+  }catch(e){cloudOK=false;}
+  setCloudDot();
+}
+function cloudSetting(key,value){
+  if(!SUPA_ON)return;
+  fetch(SUPA_URL+'/rest/v1/tt_settings?on_conflict=key',{method:'POST',keepalive:true,
+    headers:Object.assign({},SUPA_H,{Prefer:'resolution=merge-duplicates'}),
+    body:JSON.stringify({key:key,value:value})}).catch(function(){});
+}
+function cloudClear(){
+  if(!SUPA_ON)return Promise.resolve();
+  dirtySet([]);delSet([]);
+  return fetch(SUPA_URL+'/rest/v1/tt_records?id=not.is.null',{method:'DELETE',headers:SUPA_H}).catch(function(){});
+}
+function cloudPushAll(){
+  if(!SUPA_ON)return;
+  ['trip','delivery','fuel','wash','expense'].forEach(function(t){DB[COL[t]].forEach(function(r){cloudUpsert(t,r);});});
+}
+
+let cur='home';
+function go(s){
+  cur=s;
+  document.querySelectorAll('.screen').forEach(el=>el.classList.add('hidden'));
+  const sc=document.getElementById('screen-'+s); sc.classList.remove('hidden'); sc.classList.add('fade-in');
+  setTimeout(()=>sc.classList.remove('fade-in'),400);
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.s===s));
+  sc.scrollTop=0;
+  render();
+}
+
+// ===== sheet state =====
+let mode='add';      // 'add' | 'edit' | 'endTrip'
+let curType='trip';
+let editId=null, editRec=null;
+let fuelS=6, fuelE=6, payVal='מזומן';
+
+function openSheet(){
+  mode='add';curType='trip';editId=null;editRec=null;fuelS=6;fuelE=6;payVal='מזומן';
+  document.getElementById('typeSel').classList.remove('hidden');
+  document.getElementById('delBtn').classList.add('hidden');
+  document.getElementById('sheetTitle').textContent='הוספת רשומה';
+  document.getElementById('saveBtn').textContent='שמירה';
+  document.querySelectorAll('#typeSel button').forEach(b=>b.classList.toggle('on',b.dataset.t==='trip'));
+  buildForm();showSheet();
+}
+function openEndTrip(id){
+  mode='endTrip';curType='trip';editId=id;editRec=DB.trips.find(t=>t.id===id);
+  if(!editRec)return;
+  fuelE=editRec.fuelEnd||editRec.fuelStart||6;payVal=editRec.pay||'מזומן';
+  document.getElementById('typeSel').classList.add('hidden');
+  document.getElementById('delBtn').classList.add('hidden');
+  document.getElementById('sheetTitle').textContent='סיום נסיעה ✓';
+  document.getElementById('saveBtn').textContent='שמירת הנסיעה';
+  buildForm();showSheet();
+}
+function openEdit(type,id){
+  mode='edit';curType=type;editId=id;editRec=DB[COL[type]].find(r=>r.id===id);
+  if(!editRec)return;
+  fuelS=editRec.fuelStart||editRec.fuel||6;fuelE=editRec.fuelEnd||6;payVal=editRec.pay||'מזומן';
+  document.getElementById('typeSel').classList.add('hidden');
+  document.getElementById('delBtn').classList.remove('hidden');
+  const titles={trip:'עריכת נסיעה',delivery:'עריכת משלוח',fuel:'עריכת תדלוק',wash:'עריכת שטיפה',expense:'עריכת הוצאה'};
+  document.getElementById('sheetTitle').textContent=titles[type];
+  document.getElementById('saveBtn').textContent='עדכון';
+  buildForm();showSheet();
+}
+function showSheet(){document.getElementById('overlay').classList.add('show');document.getElementById('sheet').classList.add('show');document.getElementById('sheet').scrollTop=0;}
+function closeSheet(){document.getElementById('overlay').classList.remove('show');document.getElementById('sheet').classList.remove('show');}
+
+document.querySelectorAll('#typeSel button').forEach(b=>{
+  b.onclick=()=>{curType=b.dataset.t;document.querySelectorAll('#typeSel button').forEach(x=>x.classList.remove('on'));b.classList.add('on');buildForm();};
+});
+
+const PAYS=['מזומן','אשראי','ביט','פייבוקס'];
+function payRow(){return '<div class="field"><label>אמצעי תשלום</label><div class="pay" id="payRow">'+PAYS.map(p=>'<button class="'+(p===payVal?'on':'')+'" onclick="pickPay(this,\''+p+'\')">'+p+'</button>').join('')+'</div></div>';}
+function pickPay(el,p){payVal=p;document.querySelectorAll('#payRow button').forEach(x=>x.classList.remove('on'));el.classList.add('on');}
+const today=()=>new Date().toISOString().slice(0,10);
+const nowTimeStr=()=>{const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');};
+const esc=s=>(s==null?'':String(s)).replace(/"/g,'&quot;');
+// escHtml - בריחה מלאה ל-HTML (לא רק גרשיים) לכל מקום שמכניסים בו טקסט חופשי כתוכן (לא כערך של attribute) - מונע XSS
+const escHtml=s=>(s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function weekStart(dateStr){const d=new Date(dateStr+'T00:00:00');if(isNaN(d))return dateStr;d.setDate(d.getDate()-d.getDay());return d.toISOString().slice(0,10);}
+
+// ===== form sections =====
+function tripStartSection(d){
+  return `<div class="sub-h">🛣️ פרטי הנסיעה</div>
+    <div class="row2">
+      <div class="field"><label>מוצא</label><input id="f_origin" value="${esc(d.origin)}" placeholder="ירושלים"></div>
+      <div class="field"><label>יעד</label><input id="f_dest" value="${esc(d.dest)}" placeholder="תל אביב"></div></div>
+    <div class="row2">
+      <div class="field"><label>ק"מ בהתחלה</label><input id="f_kmStart" type="number" inputmode="numeric" value="${d.kmStart||''}" placeholder="120500"></div>
+      <div class="field"><label>ק"מ דלק (התחלה)</label><input id="f_fuelKmStart" type="number" inputmode="numeric" value="${d.fuelKmStart||''}" placeholder="120350"></div></div>
+    <div class="field"><label>רמת דלק בהתחלה (1-12)</label><div class="fuelbar" id="fuelbarS"></div></div>
+    <div class="field"><label>שעת יציאה</label><input id="f_timeStart" type="time" value="${d.timeStart||nowTimeStr()}"></div>`;
+}
+function tripEndSection(d){
+  return `<div class="sub-h">🏁 סיום הנסיעה</div>
+    <div class="field"><label>מחיר הנסיעה / הכנסה (₪)</label><input id="f_income" type="number" inputmode="decimal" value="${d.income!=null?d.income:''}" placeholder="180"></div>
+    <div class="row2">
+      <div class="field"><label>ק"מ בסוף</label><input id="f_kmEnd" type="number" inputmode="numeric" value="${d.kmEnd||''}" placeholder="120562"></div>
+      <div class="field"><label>ק"מ דלק (סוף)</label><input id="f_fuelKmEnd" type="number" inputmode="numeric" value="${d.fuelKmEnd||''}" placeholder="120545"></div></div>
+    <div class="field"><label>רמת דלק בסוף (1-12)</label><div class="fuelbar" id="fuelbarE"></div></div>
+    <div class="field"><label>שעת הגעה</label><input id="f_timeEnd" type="time" value="${d.timeEnd||nowTimeStr()}"></div>`;
+}
+const NOTES_PH={trip:'הערות חופשיות לנסיעה...',delivery:'הערות על המשלוח...',fuel:'הערות על התדלוק...',wash:'הערות על השטיפה...',expense:'הערות על ההוצאה...'};
+function notesField(d){return `<div class="field"><label>הערות</label><textarea id="f_notes" placeholder="${NOTES_PH[curType]||'הערות חופשיות...'}">${escHtml(d.notes)}</textarea></div>`;}
+
+function buildForm(){
+  const d=editRec||{};
+  let h='';
+  if(curType==='trip'){
+    if(mode==='add'){
+      h=tripStartSection({})+payRow()+`<div class="field"><label>תאריך</label><input id="f_date" type="date" value="${today()}"></div>`+notesField({})
+        +`<div style="color:var(--muted2);font-size:.78rem;text-align:center;margin-top:4px">תישמר כ"נסיעה פתוחה" — תשלים אותה בסיום 🏁</div>`;
+    }else if(mode==='endTrip'){
+      h=`<div style="background:var(--surface);border-radius:14px;padding:12px 15px;margin-bottom:16px;font-size:.9rem"><b>${escHtml(d.origin)||'?'} ← ${escHtml(d.dest)||'?'}</b><div style="color:var(--muted);font-size:.78rem;margin-top:3px">התחלה: ק"מ ${d.kmStart||'-'} · דלק ${d.fuelStart||'-'}/12</div></div>`
+        +tripEndSection(d)+payRow()+notesField(d);
+    }else{ // edit trip
+      h=tripStartSection(d)+tripEndSection(d)+payRow()
+        +`<div class="field"><label>תאריך</label><input id="f_date" type="date" value="${d.date||today()}"></div>`+notesField(d);
+    }
+  }else if(curType==='fuel'){
+    h=`<div class="sub-h">⛽ לפני התדלוק</div>
+      <div class="field"><label>כמות דלק לפני התדלוק (1-12)</label><div class="fuelbar" id="fuelbarS"></div></div>
+      <div class="field"><label>ק"מ דלק (לפני)</label><input id="f_fuelKmStart" type="number" inputmode="numeric" value="${d.fuelKmStart||''}" placeholder="120350"></div>
+      <div class="sub-h">⛽ אחרי התדלוק</div>
+      <div class="field"><label>כמות דלק אחרי התדלוק (1-12)</label><div class="fuelbar" id="fuelbarE"></div></div>
+      <div class="field"><label>ק"מ דלק (אחרי)</label><input id="f_fuelKmEnd" type="number" inputmode="numeric" value="${d.fuelKmEnd||''}" placeholder="120545"></div>
+      <div class="row2">
+        <div class="field"><label>ק"מ הרכב (בזמן התדלוק)</label><input id="f_km" type="number" inputmode="numeric" value="${d.km||''}" placeholder="120500"></div>
+        <div class="field"><label>מחיר התדלוק (₪)</label><input id="f_price" type="number" inputmode="decimal" value="${d.amount||''}" placeholder="280"></div></div>
+      <div class="row2">
+        <div class="field"><label>ליטרים (לא חובה)</label><input id="f_liters" type="number" inputmode="decimal" value="${d.liters||''}" placeholder="38"></div>
+        <div class="field"><label>מחיר לליטר (לא חובה)</label><input id="f_ppl" type="number" inputmode="decimal" value="${d.ppl||''}" placeholder="7.4"></div></div>
+      <div class="field"><label>תחנה</label><input id="f_station" value="${esc(d.station)}" placeholder="פז"></div>
+      `+payRow()+`<div class="field"><label>תאריך</label><input id="f_date" type="date" value="${d.date||today()}"></div>`+notesField(d);
+  }else if(curType==='wash'){
+    h=`<div class="field"><label>סוג שטיפה</label><select id="f_washType">${opts(['חיצונית','פנימית','מלאה','פוליש'],d.washType)}</select></div>
+      <div class="row2">
+        <div class="field"><label>סכום (₪)</label><input id="f_amount" type="number" inputmode="decimal" value="${d.amount||''}" placeholder="35"></div>
+        <div class="field"><label>מיקום</label><input id="f_location" value="${esc(d.location)}" placeholder="תחנת דלק"></div></div>
+      `+payRow()+`<div class="field"><label>תאריך</label><input id="f_date" type="date" value="${d.date||today()}"></div>`+notesField(d);
+  }else if(curType==='delivery'){
+    h=`<div class="row2">
+      <div class="field"><label>מוצא</label><input id="f_origin" value="${esc(d.origin)}" placeholder="מסעדה / חנות"></div>
+      <div class="field"><label>יעד</label><input id="f_dest" value="${esc(d.dest)}" placeholder="כתובת הלקוח"></div></div>
+      <div class="field"><label>מחיר המשלוח (₪)</label><input id="f_amount" type="number" inputmode="decimal" value="${d.amount||''}" placeholder="25"></div>
+      `+payRow()+`<div class="field"><label>תאריך</label><input id="f_date" type="date" value="${d.date||today()}"></div>`+notesField(d);
+  }else{
+    h=`<div class="field"><label>תיאור</label><input id="f_desc" value="${esc(d.desc)}" placeholder="חניה / כביש אגרה / אביזר"></div>
+      <div class="row2">
+        <div class="field"><label>קטגוריה</label><select id="f_cat">${opts(['חניה','כביש אגרה','אביזרים','תיקון','ביטוח','אחר'],d.cat)}</select></div>
+        <div class="field"><label>סכום (₪)</label><input id="f_amount" type="number" inputmode="decimal" value="${d.amount||''}" placeholder="20"></div></div>
+      `+payRow()+`<div class="field"><label>תאריך</label><input id="f_date" type="date" value="${d.date||today()}"></div>`+notesField(d);
+  }
+  document.getElementById('formBody').innerHTML=h;
+  if(document.getElementById('fuelbarS'))buildFuel('fuelbarS','S');
+  if(document.getElementById('fuelbarE'))buildFuel('fuelbarE','E');
+}
+function opts(arr,sel){return arr.map(o=>'<option'+(o===sel?' selected':'')+'>'+o+'</option>').join('');}
+function buildFuel(barId,which){
+  const bar=document.getElementById(barId);if(!bar)return;bar.innerHTML='';
+  const curVal=which==='S'?fuelS:fuelE;
+  for(let i=1;i<=12;i++){const b=document.createElement('button');b.textContent=i;if(i===curVal)b.classList.add('on');
+    b.onclick=()=>{if(which==='S')fuelS=i;else fuelE=i;buildFuel(barId,which);};bar.appendChild(b);}
+}
+const val=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
+const has=id=>!!document.getElementById(id);
+const num=id=>parseFloat(val(id).replace(/[^\d.]/g,''))||0;
+
+function saveRecord(){
+  const savedType=curType; let savedRec=null;
+  if(curType==='trip'){
+    if(mode==='add'){
+      if(!val('f_origin')&&!val('f_dest'))return toast('מלא לפחות מוצא או יעד','err');
+      savedRec={id:uid(),status:'open',date:val('f_date'),origin:val('f_origin'),dest:val('f_dest'),
+        kmStart:num('f_kmStart'),fuelStart:fuelS,fuelKmStart:num('f_fuelKmStart'),timeStart:val('f_timeStart')||nowTimeStr(),pay:payVal,notes:val('f_notes')};
+      DB.trips.push(savedRec);
+      toast('נסיעה נפתחה 🛣️ — תשלים בסיום');
+    }else if(mode==='endTrip'){
+      const t=DB.trips.find(x=>x.id===editId);if(!t)return;
+      Object.assign(t,{status:'done',income:num('f_income'),kmEnd:num('f_kmEnd'),fuelEnd:fuelE,fuelKmEnd:num('f_fuelKmEnd'),timeEnd:val('f_timeEnd')||nowTimeStr(),pay:payVal});
+      if(val('f_notes'))t.notes=val('f_notes');
+      savedRec=t;toast('הנסיעה הושלמה ✅');
+    }else{ // edit trip
+      const t=DB.trips.find(x=>x.id===editId);if(!t)return;
+      Object.assign(t,{date:val('f_date'),origin:val('f_origin'),dest:val('f_dest'),
+        kmStart:num('f_kmStart'),fuelStart:fuelS,fuelKmStart:num('f_fuelKmStart'),timeStart:val('f_timeStart')||t.timeStart,
+        income:has('f_income')&&val('f_income')!==''?num('f_income'):(t.income||0),
+        kmEnd:num('f_kmEnd'),fuelEnd:fuelE,fuelKmEnd:num('f_fuelKmEnd'),timeEnd:val('f_timeEnd')||t.timeEnd,pay:payVal,notes:val('f_notes')});
+      t.status=(num('f_kmEnd')>0||(t.income>0))?'done':'open';
+      savedRec=t;toast('הנסיעה עודכנה ✏️');
+    }
+  }else{
+    let rec;
+    if(curType==='fuel'){
+      const liters=num('f_liters'),ppl=num('f_ppl'),priceIn=num('f_price');
+      const amount=priceIn||+(liters*ppl).toFixed(2)||0;
+      const pplOut=ppl||(liters&&amount?+(amount/liters).toFixed(2):0);
+      rec={date:val('f_date'),fuelStart:fuelS,fuelKmStart:num('f_fuelKmStart'),fuelEnd:fuelE,fuelKmEnd:num('f_fuelKmEnd'),
+        km:num('f_km'),liters,ppl:pplOut,amount,station:val('f_station'),pay:payVal,notes:val('f_notes')};
+    }
+    else if(curType==='wash')rec={date:val('f_date'),washType:val('f_washType'),amount:num('f_amount'),location:val('f_location'),pay:payVal,notes:val('f_notes')};
+    else if(curType==='delivery')rec={date:val('f_date'),origin:val('f_origin'),dest:val('f_dest'),amount:num('f_amount'),pay:payVal,notes:val('f_notes')};
+    else rec={date:val('f_date'),desc:val('f_desc'),cat:val('f_cat'),amount:num('f_amount'),pay:payVal,notes:val('f_notes')};
+    if(mode==='edit'){const r=DB[COL[curType]].find(x=>x.id===editId);Object.assign(r,rec);savedRec=r;toast('עודכן ✏️');}
+    else{rec.id=uid();DB[COL[curType]].push(rec);savedRec=rec;toast('נשמר בהצלחה ✅');}
+  }
+  save();closeSheet();render();
+  if(savedRec)cloudUpsert(savedType,savedRec);
+}
+function deleteCurrent(){
+  if(!editId||!confirm('למחוק את הרשומה? פעולה בלתי הפיכה.'))return;
+  const delId=editId;
+  DB[COL[curType]]=DB[COL[curType]].filter(r=>r.id!==delId);save();closeSheet();toast('נמחק 🗑️');render();
+  cloudDelete(delId);
+}
+
+// ===== compute =====
+const sum=(a,f)=>a.reduce((t,r)=>t+(Number(r[f])||0),0);
+function doneTrips(){return DB.trips.filter(t=>t.status==='done');}
+function openTrips(){return DB.trips.filter(t=>t.status!=='done');}
+function calc(){
+  const deliveryC=sum(DB.delivery,'amount');
+  const income=sum(doneTrips(),'income')+deliveryC;
+  const fuelC=sum(DB.fuel,'amount'),washC=sum(DB.wash,'amount'),expC=sum(DB.expense,'amount');
+  const totExp=fuelC+washC+expC;
+  const km=tripsKm();const liters=sum(DB.fuel,'liters');
+  return{income,deliveryC,fuelC,washC,expC,totExp,net:income-totExp,km,liters,
+    cpk:km?totExp/km:0,cons:liters?km/liters:0,
+    nTrips:doneTrips().length,nOpen:openTrips().length,nFuel:DB.fuel.length,nDelivery:DB.delivery.length};
+}
+function tripsKm(){let d=0;doneTrips().forEach(t=>{const diff=(t.kmEnd||0)-(t.kmStart||0);if(diff>0&&diff<3000)d+=diff;});return d;}
+const f=n=>Math.round(n).toLocaleString('he-IL');
+const f1=n=>(Math.round(n*10)/10).toLocaleString('he-IL');
+
+// ===== render =====
+let charts={};
+function render(){
+  const c=calc();
+  document.getElementById('greeting').textContent=greet();
+  document.getElementById('homeCar').textContent=DB.car;
+  document.getElementById('setCarName').textContent=DB.car;
+  document.getElementById('heroBal').textContent='₪'+f(c.net);
+  document.getElementById('heroInc').textContent='₪'+f(c.income);
+  document.getElementById('heroExp').textContent='₪'+f(c.totExp);
+  document.getElementById('heroKm').textContent=f(c.km);
+  document.getElementById('kpiGrid').innerHTML=[
+    ['⛽','דלק','₪'+f(c.fuelC),'var(--amber)'],
+    ['🧼','שטיפות','₪'+f(c.washC),'var(--teal)'],
+    ['⚖️','עלות לק"מ','₪'+f1(c.cpk),'var(--pink)'],
+    ['📊','צריכה',''+f1(c.cons)+' ק"מ/ל','var(--blue)']
+  ].map(kpiCard).join('');
+  renderOpen();
+  document.getElementById('goalWrap').innerHTML=goalCard();
+  maybeShowBackupReminder();
+  if(cur==='home'){drawMain(c);drawBreak(c);recent();}
+  if(cur==='history')renderHistory();
+  if(cur==='stats'){renderStats(c);renderReport();}
+  if(cur==='settings'){renderDemoRow();renderGoalRows();}
+  setCloudDot();
+}
+function kpiCard(k){return `<div class="kpi"><div class="ic" style="background:${k[3]}22;color:${k[3]}">${k[0]}</div><div class="k">${k[1]}</div><div class="v">${k[2]}</div></div>`;}
+function greet(){const h=new Date().getHours();return h<12?'בוקר טוב ☀️':h<18?'צהריים טובים 👋':'ערב טוב 🌙';}
+
+function renderOpen(){
+  const o=openTrips();const w=document.getElementById('openWrap');
+  if(!o.length){w.innerHTML='';return;}
+  w.innerHTML='<div class="sec-h"><h2>נסיעות פתוחות 🟠</h2></div>'+o.map(t=>`
+    <div class="opentrip">
+      <div class="ic">🛣️</div>
+      <div class="mid" onclick="openEdit('trip','${t.id}')">
+        <div class="t1">${escHtml(t.origin)||'?'} ← ${escHtml(t.dest)||'?'}</div>
+        <div class="t2">בתהליך · ק"מ ${t.kmStart||'-'} · דלק ${t.fuelStart||'-'}/12</div>
+      </div>
+      <button class="btn-finish" onclick="openEndTrip('${t.id}')">סיים ✓</button>
+    </div>`).join('');
+}
+
+// ===== income goals (daily + weekly, tracked separately) =====
+function setGoal(kind){
+  const key=kind==='daily'?'goalDaily':'goalWeekly';
+  const n=prompt(kind==='daily'?'יעד הכנסה יומי (₪):':'יעד הכנסה שבועי (₪):',DB[key]||'');
+  if(n==null)return;
+  const v=parseFloat(n.replace(/[^\d.]/g,''))||0;
+  DB[key]=v;save();render();cloudSetting(key,String(v));
+  toast('היעד עודכן 🎯');
+}
+function renderGoalRows(){
+  const dT=document.getElementById('goalDailyTxt'),wT=document.getElementById('goalWeeklyTxt');
+  if(dT)dT.textContent=DB.goalDaily?('₪'+f(DB.goalDaily)+' ליום'):'לא הוגדר';
+  if(wT)wT.textContent=DB.goalWeekly?('₪'+f(DB.goalWeekly)+' לשבוע'):'לא הוגדר';
+}
+function goalRow(label,amt,goal){
+  const pct=Math.min(100,Math.round(amt/goal*100));
+  const col=pct>=100?'var(--green)':'var(--violet)';
+  return `<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:6px"><span>${label}</span><span style="font-weight:700">₪${f(amt)} / ₪${f(goal)}</span></div>
+    <div style="height:8px;background:var(--line);border-radius:6px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${col};border-radius:6px"></div></div></div>`;
+}
+function goalCard(){
+  if(!DB.goalDaily&&!DB.goalWeekly)return'';
+  const t0=today(),wk=weekStart(t0);
+  let dayInc=0,weekInc=0;
+  doneTrips().forEach(t=>{
+    if(t.date===t0)dayInc+=Number(t.income)||0;
+    if(t.date&&weekStart(t.date)===wk)weekInc+=Number(t.income)||0;
+  });
+  DB.delivery.forEach(r=>{
+    if(r.date===t0)dayInc+=Number(r.amount)||0;
+    if(r.date&&weekStart(r.date)===wk)weekInc+=Number(r.amount)||0;
+  });
+  let rows='';
+  if(DB.goalDaily)rows+=goalRow('🎯 יעד יומי',dayInc,DB.goalDaily);
+  if(DB.goalWeekly)rows+=goalRow('🏆 יעד שבועי',weekInc,DB.goalWeekly);
+  return `<div class="card">${rows}</div>`;
+}
+
+// ===== weekly backup reminder =====
+const BKEY='tt_lastBackup', BNKEY='tt_backupNagDismiss';
+function daysSince(ts){return ts?(Date.now()-Number(ts))/86400000:Infinity;}
+function dismissBackupReminder(){localStorage.setItem(BNKEY,String(Date.now()));maybeShowBackupReminder();}
+function maybeShowBackupReminder(){
+  const w=document.getElementById('backupWrap');if(!w)return;
+  const hasData=DB.trips.length||DB.delivery.length||DB.fuel.length||DB.wash.length||DB.expense.length;
+  const since=daysSince(localStorage.getItem(BKEY));
+  const dismissedRecently=daysSince(localStorage.getItem(BNKEY))<7;
+  if(hasData&&since>=7&&!dismissedRecently){
+    w.innerHTML=`<div class="opentrip" style="background:linear-gradient(135deg,rgba(20,184,166,.18),rgba(59,130,246,.12));border-color:rgba(20,184,166,.4)">
+      <div class="ic" style="background:var(--grad-teal)">💾</div>
+      <div class="mid" onclick="dismissBackupReminder()"><div class="t1">מומלץ לגבות נתונים</div><div class="t2" style="color:var(--teal)">לא גיבית כבר מעל שבוע</div></div>
+      <button class="btn-finish" style="background:var(--grad-teal)" onclick="exportData()">ייצוא</button>
+    </div>`;
+  }else w.innerHTML='';
+}
+
+const ICO={trip:['🛣️','var(--violet)'],delivery:['📦','var(--blue)'],fuel:['⛽','var(--amber)'],wash:['🧼','var(--teal)'],expense:['💸','var(--pink)']};
+function allTx(){
+  let a=[];
+  DB.trips.forEach(r=>{const done=r.status==='done';
+    const timeStr=done?(r.timeStart&&r.timeEnd?(r.timeStart+'→'+r.timeEnd+' · '):''):(r.timeStart?('יצא ב-'+r.timeStart+' · '):'');
+    a.push({type:'trip',id:r.id,date:r.date,open:!done,
+      title:(escHtml(r.origin)||'?')+' ← '+(escHtml(r.dest)||'?'),
+      sub:done?(timeStr+'דלק '+(r.fuelEnd||r.fuelStart||'-')+'/12 · '+escHtml(r.pay||'')):(timeStr+'בתהליך — ממתינה לסיום'),
+      amt:done?r.income:0,pos:true});});
+  DB.delivery.forEach(r=>a.push({type:'delivery',id:r.id,date:r.date,title:(escHtml(r.origin)||'?')+' ← '+(escHtml(r.dest)||'?'),sub:escHtml(r.pay||''),amt:r.amount,pos:true}));
+  DB.fuel.forEach(r=>a.push({type:'fuel',id:r.id,date:r.date,title:'תדלוק '+escHtml(r.station||''),
+    sub:(r.fuelStart!=null&&r.fuelEnd!=null?(r.fuelStart+'→'+r.fuelEnd+'/12 · '):'')+(r.liters?f1(r.liters)+' ל · ':'')+'₪'+f(r.amount),amt:-r.amount}));
+  DB.wash.forEach(r=>a.push({type:'wash',id:r.id,date:r.date,title:'שטיפה '+escHtml(r.washType||''),sub:escHtml(r.location||''),amt:-r.amount}));
+  DB.expense.forEach(r=>a.push({type:'expense',id:r.id,date:r.date,title:escHtml(r.desc||r.cat),sub:escHtml(r.cat),amt:-r.amount}));
+  return a.sort((x,y)=>(y.date||'').localeCompare(x.date||'')||0);
+}
+function txRow(t){
+  const ic=ICO[t.type];
+  let right;
+  if(t.open){right=`<button class="mini" onclick="event.stopPropagation();openEndTrip('${t.id}')">סיים ✓</button>`;}
+  else{right=`<div class="amt ${t.pos?'pos':'neg'}">${(t.pos?'+':'')+'₪'+f(Math.abs(t.amt||0))}</div>`;}
+  return `<div class="tx" onclick="openEdit('${t.type}','${t.id}')">
+    <div class="ic" style="background:${ic[1]}22;color:${ic[1]}">${ic[0]}</div>
+    <div class="mid"><div class="t1">${t.title}${t.open?' <span class="badge">בתהליך</span>':''}</div><div class="t2">${fmtDate(t.date)}${hebrewDateStr(t.date)?' ('+hebrewDateStr(t.date)+')':''} · ${t.sub}</div></div>
+    ${right}</div>`;
+}
+function fmtDate(d){if(!d)return'';const p=d.split('-');return p.length===3?p[2]+'/'+p[1]:d;}
+
+// ===== תאריך עברי (ללא ספריה חיצונית - Intl.DateTimeFormat עם לוח עברי, וממירים את הספרות לאותיות עבריות) =====
+const HEB_DATE_CACHE={};
+function hebrewNumeral(num){
+  if(num<=0)return String(num);
+  const ones=['','א','ב','ג','ד','ה','ו','ז','ח','ט'];
+  const tens=['','י','כ','ל','מ','נ','ס','ע','פ','צ'];
+  let n=num,out='';
+  while(n>=400){out+='ת';n-=400;}
+  if(n>=300){out+='ש';n-=300;}
+  else if(n>=200){out+='ר';n-=200;}
+  else if(n>=100){out+='ק';n-=100;}
+  if(n===15){out+='טו';n=0;}
+  else if(n===16){out+='טז';n=0;}
+  else{
+    if(n>=10){out+=tens[Math.floor(n/10)];n%=10;}
+    if(n>0)out+=ones[n];
+  }
+  if(out.length<=1)return out+'׳';
+  return out.slice(0,-1)+'״'+out.slice(-1);
+}
+function hebrewDateStr(iso){
+  if(!iso)return'';
+  if(HEB_DATE_CACHE[iso]!=null)return HEB_DATE_CACHE[iso];
+  let result='';
+  try{
+    const d=new Date(iso+'T12:00:00');
+    const parts=new Intl.DateTimeFormat('he-u-ca-hebrew',{day:'numeric',month:'long',year:'numeric'}).formatToParts(d);
+    const day=+parts.find(p=>p.type==='day').value;
+    const month=parts.find(p=>p.type==='month').value;
+    const year=+parts.find(p=>p.type==='year').value;
+    result=`${hebrewNumeral(day)} ב${month} ${hebrewNumeral(year%1000)}`;
+  }catch(e){result='';}
+  HEB_DATE_CACHE[iso]=result;
+  return result;
+}
+function recent(){
+  const a=allTx().slice(0,6);
+  document.getElementById('recentList').innerHTML=a.length?a.map(txRow).join(''):emptyState('עדיין אין פעילות','הוסף רשומה ראשונה עם הכפתור ➕');
+}
+function emptyState(t,s){return `<div class="empty"><div class="e">🗂️</div><div style="font-weight:600;color:var(--muted)">${t}</div><div style="font-size:.82rem;margin-top:4px">${s}</div></div>`;}
+
+let histF='all';
+document.querySelectorAll('#histFilter button').forEach(b=>b.onclick=()=>{histF=b.dataset.f;document.querySelectorAll('#histFilter button').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderHistory();});
+function renderHistory(){
+  let a=allTx();if(histF!=='all')a=a.filter(t=>t.type===histF);
+  const from=val('histFrom'),to=val('histTo');
+  if(from)a=a.filter(t=>(t.date||'')>=from);
+  if(to)a=a.filter(t=>(t.date||'')<=to);
+  document.getElementById('historyList').innerHTML=a.length?a.map(txRow).join(''):emptyState('אין רשומות','נסה סינון אחר או הוסף רשומה');
+}
+function clearHistDates(){document.getElementById('histFrom').value='';document.getElementById('histTo').value='';renderHistory();}
+
+function renderStats(c){
+  document.getElementById('statKpis').innerHTML=[
+    ['🚕','נסיעות שהושלמו',c.nTrips,'var(--violet)'],
+    ['🟠','נסיעות פתוחות',c.nOpen,'var(--amber)'],
+    ['📦','משלוחים',c.nDelivery,'var(--blue)'],
+    ['💰','הכנסה','₪'+f(c.income),'var(--green)'],
+    ['🛣️','סה"כ ק"מ',f(c.km),'var(--blue)']
+  ].map(kpiCard).join('');
+  const pay={};doneTrips().forEach(t=>{pay[t.pay]=(pay[t.pay]||0)+(t.income||0)});
+  drawPay(Object.keys(pay),Object.values(pay));
+  const avg=c.cons?f1(c.cons):'—';
+  document.getElementById('fuelStats').innerHTML=`
+    <div class="set-row"><div class="ic">📊</div><div class="mid"><div class="t1">צריכה ממוצעת</div><div class="t2">ק"מ לליטר</div></div><div style="font-weight:700">${avg}</div></div>
+    <div class="set-row"><div class="ic">⛽</div><div class="mid"><div class="t1">סה"כ ליטרים</div><div class="t2">שתודלקו</div></div><div style="font-weight:700">${f1(c.liters)}</div></div>
+    <div class="set-row"><div class="ic">💸</div><div class="mid"><div class="t1">הוצאת דלק</div><div class="t2">סה"כ</div></div><div style="font-weight:700">₪${f(c.fuelC)}</div></div>`;
+}
+
+// ===== monthly/weekly report =====
+let reportPeriodVal='week';
+document.querySelectorAll('#reportPeriod button').forEach(b=>b.onclick=()=>{reportPeriodVal=b.dataset.p;document.querySelectorAll('#reportPeriod button').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderReport();});
+const MONTH_NAMES=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+function fmtMonth(k){const p=k.split('-');return MONTH_NAMES[(+p[1])-1]+' '+p[0];}
+function buildReport(period){
+  const buckets={};
+  allTx().forEach(t=>{
+    if(t.open||!t.date)return;
+    const key=period==='week'?weekStart(t.date):t.date.slice(0,7);
+    if(!buckets[key])buckets[key]={income:0,exp:0,key};
+    if(t.amt>0)buckets[key].income+=t.amt;else buckets[key].exp+=-(t.amt||0);
+  });
+  return Object.values(buckets).sort((a,b)=>b.key.localeCompare(a.key)).slice(0,8);
+}
+// פילוח לפי חודשים (כל ההיסטוריה, לא רק 8 האחרונים) - לשימוש בייצוא האקסל
+function monthlyBreakdown(){
+  const buckets={};
+  allTx().forEach(t=>{
+    if(t.open||!t.date)return;
+    const key=t.date.slice(0,7);
+    if(!buckets[key])buckets[key]={key,income:0,fuel:0,wash:0,expense:0};
+    if(t.type==='trip'||t.type==='delivery')buckets[key].income+=t.amt||0;
+    else if(t.type==='fuel')buckets[key].fuel+=-(t.amt||0);
+    else if(t.type==='wash')buckets[key].wash+=-(t.amt||0);
+    else if(t.type==='expense')buckets[key].expense+=-(t.amt||0);
+  });
+  return Object.values(buckets).sort((a,b)=>a.key.localeCompare(b.key));
+}
+function trendBadge(net,prevNet){
+  if(prevNet==null)return'';
+  if(prevNet===0)return net>0?`<span style="font-size:.72rem;font-weight:700;color:var(--green);margin-right:6px">▲ חדש</span>`:'';
+  const pct=Math.round(((net-prevNet)/Math.abs(prevNet))*100);
+  if(pct===0)return`<span style="font-size:.72rem;font-weight:700;color:var(--muted);margin-right:6px">— ללא שינוי</span>`;
+  const up=pct>0;
+  return `<span style="font-size:.72rem;font-weight:700;color:${up?'var(--green)':'var(--red)'};margin-right:6px">${up?'▲':'▼'}${Math.abs(pct)}%</span>`;
+}
+function renderReport(){
+  const el=document.getElementById('reportList');if(!el)return;
+  const rows=buildReport(reportPeriodVal);
+  el.innerHTML=rows.length?rows.map((r,i)=>{
+    const net=r.income-r.exp;
+    const prev=rows[i+1];
+    const prevNet=prev?(prev.income-prev.exp):null;
+    const label=reportPeriodVal==='week'?('שבוע מ-'+fmtDate(r.key)):fmtMonth(r.key);
+    return `<div class="set-row"><div class="ic">${net>=0?'📈':'📉'}</div><div class="mid"><div class="t1">${label}${trendBadge(net,prevNet)}</div><div class="t2">הכנסות ₪${f(r.income)} · הוצאות ₪${f(r.exp)}</div></div><div style="font-weight:700;color:${net>=0?'var(--green)':'var(--red)'}">₪${f(net)}</div></div>`;
+  }).join(''):emptyState('אין נתונים','אין עדיין רשומות לתקופה הזו');
+}
+
+Chart.defaults.color='#9b94c0';Chart.defaults.font.family='Rubik';
+function drawMain(c){
+  mk('chartMain','bar',{labels:['הכנסות','הוצאות'],datasets:[{data:[c.income,c.totExp],backgroundColor:['#10b981','#ef4444'],borderRadius:12,barThickness:60}]},
+    {plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{callback:v=>'₪'+v}},x:{grid:{display:false}}}});
+}
+function drawBreak(c){
+  const has=c.fuelC+c.washC+c.expC>0;
+  mk('chartBreak','doughnut',{labels:['דלק','שטיפות','אחר'],datasets:[{data:has?[c.fuelC,c.washC,c.expC]:[1,1,1],backgroundColor:['#f59e0b','#14b8a6','#ec4899'],borderWidth:0}]},
+    {cutout:'66%',plugins:{legend:{position:'bottom',labels:{padding:16,usePointStyle:true,pointStyle:'circle'}}}});
+}
+function drawPay(labels,data){
+  mk('chartPay','doughnut',{labels:labels.length?labels:['אין נתונים'],datasets:[{data:data.length?data:[1],backgroundColor:['#7c3aed','#14b8a6','#f59e0b','#ec4899','#3b82f6'],borderWidth:0}]},
+    {cutout:'60%',plugins:{legend:{position:'bottom',labels:{padding:14,usePointStyle:true,pointStyle:'circle'}}}});
+}
+function mk(id,type,data,opts){
+  const el=document.getElementById(id);if(!el)return;
+  if(charts[id])charts[id].destroy();
+  charts[id]=new Chart(el,{type,data,options:Object.assign({responsive:true,maintainAspectRatio:true},opts)});
+}
+
+function renameCar(){const n=prompt('שם הרכב:',DB.car);if(n){DB.car=n.trim()||DB.car;save();render();cloudSetting('car',DB.car);}}
+async function exportData(){
+  // אם הטאב הזה פתוח כבר זמן מה, ייתכן שנוספו נתונים חדשים (למשל דרך הבוט בטלגרם)
+  // שעדיין לא נמשכו לזיכרון המקומי - לכן מסנכרנים מהענן ממש לפני הייצוא, כדי שהגיבוי תמיד יהיה מלא ומעודכן.
+  if(SUPA_ON){toast('מסנכרן עם הענן לפני הייצוא... ⏳');await cloudPull();}
+  const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='triptracker-backup-'+today()+'.json';a.click();
+  localStorage.setItem(BKEY,String(Date.now()));
+  maybeShowBackupReminder();
+  toast('הנתונים יוצאו 📤');
+}
+async function exportExcel(){
+  if(typeof XLSX==='undefined'){toast('שגיאה בטעינת ספריית האקסל','err');return;}
+  // כנ"ל - מוודאים שהגיבוי הקריא כולל גם רשומות שנוספו דרך הבוט מאז שהטאב נפתח
+  if(SUPA_ON){toast('מסנכרן עם הענן לפני הייצוא... ⏳');await cloudPull();}
+  const tripsRows=DB.trips.map(t=>({
+    'תאריך':t.date||'', 'תאריך עברי':hebrewDateStr(t.date), 'סטטוס':t.status==='done'?'הושלמה':'בתהליך',
+    'מוצא':t.origin||'', 'יעד':t.dest||'',
+    'שעת יציאה':t.timeStart||'', 'שעת הגעה':t.timeEnd||'',
+    'קמ בהתחלה':t.kmStart||0, 'קמ בסוף':t.kmEnd||0,
+    'דלק בהתחלה (מתוך 12)':t.fuelStart!=null?t.fuelStart:'', 'דלק בסוף (מתוך 12)':t.fuelEnd!=null?t.fuelEnd:'',
+    'טווח דלק בהתחלה':t.fuelKmStart||'', 'טווח דלק בסוף':t.fuelKmEnd||'',
+    'הכנסה (₪)':t.income||0, 'אמצעי תשלום':t.pay||'', 'הערה':t.notes||'',
+  }));
+  const deliveryRows=DB.delivery.map(r=>({
+    'תאריך':r.date||'', 'תאריך עברי':hebrewDateStr(r.date), 'מוצא':r.origin||'', 'יעד':r.dest||'',
+    'מחיר (₪)':r.amount||0, 'אמצעי תשלום':r.pay||'', 'הערה':r.notes||'',
+  }));
+  const fuelRows=DB.fuel.map(r=>({
+    'תאריך':r.date||'', 'תאריך עברי':hebrewDateStr(r.date), 'תחנה':r.station||'',
+    'דלק לפני (מתוך 12)':r.fuelStart!=null?r.fuelStart:'', 'דלק אחרי (מתוך 12)':r.fuelEnd!=null?r.fuelEnd:'',
+    'טווח לפני':r.fuelKmStart||'', 'טווח אחרי':r.fuelKmEnd||'',
+    'קמ רכב':r.km||0, 'ליטרים':r.liters||0, 'מחיר לליטר':r.ppl||'',
+    'סכום (₪)':r.amount||0, 'אמצעי תשלום':r.pay||'', 'הערה':r.notes||'',
+  }));
+  const washRows=DB.wash.map(r=>({
+    'תאריך':r.date||'', 'תאריך עברי':hebrewDateStr(r.date), 'סוג שטיפה':r.washType||'', 'מיקום':r.location||'',
+    'סכום (₪)':r.amount||0, 'אמצעי תשלום':r.pay||'', 'הערה':r.notes||'',
+  }));
+  const expRows=DB.expense.map(r=>({
+    'תאריך':r.date||'', 'תאריך עברי':hebrewDateStr(r.date), 'תיאור':r.desc||'', 'קטגוריה':r.cat||'',
+    'סכום (₪)':r.amount||0, 'אמצעי תשלום':r.pay||'', 'הערה':r.notes||'',
+  }));
+  const c=calc();
+
+  // שורת "סה"כ" בסוף כל טבלה - מוסיפים רק אם יש בכלל נתונים בטבלה
+  if(tripsRows.length)tripsRows.push({
+    'תאריך':'סה"כ','תאריך עברי':'','סטטוס':'','מוצא':'','יעד':'','שעת יציאה':'','שעת הגעה':'',
+    'קמ בהתחלה':'','קמ בסוף':'','דלק בהתחלה (מתוך 12)':'','דלק בסוף (מתוך 12)':'',
+    'טווח דלק בהתחלה':'','טווח דלק בסוף':'',
+    'הכנסה (₪)':Math.round(c.income),'אמצעי תשלום':'','הערה':'',
+  });
+  if(deliveryRows.length)deliveryRows.push({
+    'תאריך':'סה"כ','תאריך עברי':'','מוצא':'','יעד':'','מחיר (₪)':Math.round(c.deliveryC),'אמצעי תשלום':'','הערה':'',
+  });
+  if(fuelRows.length)fuelRows.push({
+    'תאריך':'סה"כ','תאריך עברי':'','תחנה':'',
+    'דלק לפני (מתוך 12)':'','דלק אחרי (מתוך 12)':'','טווח לפני':'','טווח אחרי':'',
+    'קמ רכב':'','ליטרים':Math.round(c.liters*10)/10,'מחיר לליטר':'',
+    'סכום (₪)':Math.round(c.fuelC),'אמצעי תשלום':'','הערה':'',
+  });
+  if(washRows.length)washRows.push({
+    'תאריך':'סה"כ','תאריך עברי':'','סוג שטיפה':'','מיקום':'','סכום (₪)':Math.round(c.washC),'אמצעי תשלום':'','הערה':'',
+  });
+  if(expRows.length)expRows.push({
+    'תאריך':'סה"כ','תאריך עברי':'','תיאור':'','קטגוריה':'','סכום (₪)':Math.round(c.expC),'אמצעי תשלום':'','הערה':'',
+  });
+
+  // שורות טקסט קצרות מתחת לכל טבלה - סיכום כללי של הכנסות/הוצאות, לצפייה מהירה בלי לגלול לגיליון הסיכום
+  const footerLines=[
+    `הכנסות: ₪${f(c.income)}`,
+    `מתוכן משלוחים: ₪${f(c.deliveryC)}`,
+    `תדלוקים: ₪${f(c.fuelC)}`,
+    `שטיפה: ₪${f(c.washC)}`,
+    `הוצאות: ₪${f(c.expC)}`,
+    `מאזן נטו: ₪${f(c.net)}`,
+  ];
+
+  const summaryRows=[
+    {'שדה':'רכב','ערך':DB.car},
+    {'שדה':'מאזן נטו (₪)','ערך':Math.round(c.net)},
+    {'שדה':'סה"כ הכנסות (₪)','ערך':Math.round(c.income)},
+    {'שדה':'סה"כ הוצאות (₪)','ערך':Math.round(c.totExp)},
+    {'שדה':'  מתוכן - תדלוקים (₪)','ערך':Math.round(c.fuelC)},
+    {'שדה':'  מתוכן - שטיפות (₪)','ערך':Math.round(c.washC)},
+    {'שדה':'  מתוכן - הוצאות אחרות (₪)','ערך':Math.round(c.expC)},
+    {'שדה':'מספר נסיעות שהושלמו','ערך':c.nTrips},
+    {'שדה':'נסיעות פתוחות','ערך':c.nOpen},
+    {'שדה':'מספר משלוחים','ערך':c.nDelivery},
+    {'שדה':'הכנסה ממשלוחים (₪)','ערך':Math.round(c.deliveryC)},
+    {'שדה':'סה"כ ק"מ','ערך':Math.round(c.km)},
+    {'שדה':'תאריך הפקה','ערך':today()},
+  ];
+
+  // פילוח לפי חודשים - כל חודש עם הכנסות/הוצאות מפורטות ומאזן, ושורת סה"כ בסוף
+  const monthly=monthlyBreakdown();
+  const monthlyRows=monthly.map(m=>({
+    'חודש':fmtMonth(m.key),
+    'הכנסות (₪)':Math.round(m.income),
+    'תדלוקים (₪)':Math.round(m.fuel),
+    'שטיפות (₪)':Math.round(m.wash),
+    'הוצאות (₪)':Math.round(m.expense),
+    'סה"כ הוצאות (₪)':Math.round(m.fuel+m.wash+m.expense),
+    'מאזן נטו (₪)':Math.round(m.income-(m.fuel+m.wash+m.expense)),
+  }));
+  if(monthlyRows.length){
+    const tot=monthly.reduce((s,m)=>({income:s.income+m.income,fuel:s.fuel+m.fuel,wash:s.wash+m.wash,expense:s.expense+m.expense}),{income:0,fuel:0,wash:0,expense:0});
+    monthlyRows.push({
+      'חודש':'סה"כ',
+      'הכנסות (₪)':Math.round(tot.income),
+      'תדלוקים (₪)':Math.round(tot.fuel),
+      'שטיפות (₪)':Math.round(tot.wash),
+      'הוצאות (₪)':Math.round(tot.expense),
+      'סה"כ הוצאות (₪)':Math.round(tot.fuel+tot.wash+tot.expense),
+      'מאזן נטו (₪)':Math.round(tot.income-(tot.fuel+tot.wash+tot.expense)),
+    });
+  }
+
+  const wb=XLSX.utils.book_new();
+  addAutoSheet(wb,summaryRows,'סיכום');
+  addAutoSheet(wb,tripsRows,'נסיעות',footerLines);
+  addAutoSheet(wb,deliveryRows,'משלוחים',footerLines);
+  addAutoSheet(wb,fuelRows,'תדלוקים',footerLines);
+  addAutoSheet(wb,washRows,'שטיפות',footerLines);
+  addAutoSheet(wb,expRows,'הוצאות',footerLines);
+  addAutoSheet(wb,monthlyRows,'לפי חודשים');
+  XLSX.writeFile(wb,'triptracker-'+today()+'.xlsx');
+  toast('קובץ אקסל יוצא בהצלחה 📊');
+}
+// בונה גיליון ומרחיב אוטומטית כל עמודה ושורה כדי שכל התוכן ייראה בלי לגרור ידנית
+function textWidth(v){
+  const s=v==null?'':String(v);
+  // תווים בעברית נוטים להיראות מעט רחבים יותר מאשר ספירת תווים גולמית באקסל - לכן תוספת קלה
+  const heb=(s.match(/[֐-׿]/g)||[]).length;
+  return s.length+heb*0.35;
+}
+function addAutoSheet(wb,rows,name,footerLines){
+  const ws=XLSX.utils.json_to_sheet(rows);
+  if(rows.length){
+    const keys=Object.keys(rows[0]);
+    ws['!cols']=keys.map(k=>{
+      let max=textWidth(k);
+      rows.forEach(r=>{const w=textWidth(r[k]);if(w>max)max=w;});
+      const isDate=k.indexOf('תאריך')!==-1; // לעמודות תאריך יש נטייה להיראות צפופות יותר מהמחושב - רוחב מינימלי גבוה יותר
+      return {wch:Math.max(Math.min(Math.ceil(max)+6,48),isDate?16:12)};
+    });
+    // שורת כותרת קצת יותר גבוהה כדי שהעברית תיראה נוח, ושאר השורות בגובה רגיל
+    ws['!rows']=[{hpt:20}].concat(rows.map(()=>({hpt:18})));
+  }
+  // שורות טקסט חופשי (סיכום קצר) מתחת לטבלה, אם התבקשו - עם שורה ריקה מפרידה
+  if(footerLines&&footerLines.length){
+    XLSX.utils.sheet_add_aoa(ws,[[]].concat(footerLines.map(t=>[t])),{origin:-1});
+  }
+  XLSX.utils.book_append_sheet(wb,ws,name);
+}
+function importData(e){
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);DB=Object.assign(blank(),d);save();render();Promise.resolve(cloudClear()).then(cloudPushAll);cloudSetting('car',DB.car);toast('יובא בהצלחה 📥');}catch(x){toast('קובץ לא תקין','err');}};r.readAsText(file);
+}
+function clearData(){if(confirm('למחוק את כל הנתונים? פעולה בלתי הפיכה.')){DB=blank();save();render();cloudClear();toast('כל הנתונים נמחקו');}}
+function addDemo(){
+  DB.trips.push(
+    {id:uid(),demo:true,status:'done',date:isoAgo(8),origin:'ירושלים',dest:'תל אביב',kmStart:120300,kmEnd:120362,fuelStart:10,fuelEnd:8,fuelKmStart:120200,fuelKmEnd:120300,income:180,pay:'מזומן',notes:''},
+    {id:uid(),demo:true,status:'done',date:isoAgo(6),origin:'תל אביב',dest:'חיפה',kmStart:120362,kmEnd:120457,fuelStart:8,fuelEnd:5,fuelKmStart:120300,fuelKmEnd:120400,income:240,pay:'אשראי',notes:'פקקים בכניסה'},
+    {id:uid(),demo:true,status:'done',date:isoAgo(4),origin:'חיפה',dest:'ירושלים',kmStart:120457,kmEnd:120607,fuelStart:11,fuelEnd:6,fuelKmStart:120400,fuelKmEnd:120545,income:320,pay:'ביט',notes:''},
+    {id:uid(),demo:true,status:'open',date:isoAgo(1),origin:'ירושלים',dest:'באר שבע',kmStart:120607,fuelStart:9,fuelKmStart:120545,pay:'אשראי',notes:'נסיעה שעדיין בתהליך'}
+  );
+  DB.fuel.push(
+    {id:uid(),demo:true,date:isoAgo(7),fuelStart:3,fuelKmStart:120150,fuelEnd:12,fuelKmEnd:120350,liters:38,ppl:7.4,amount:281.2,km:120350,station:'פז',pay:'אשראי'},
+    {id:uid(),demo:true,date:isoAgo(3),fuelStart:2,fuelKmStart:120350,fuelEnd:12,fuelKmEnd:120545,liters:32,ppl:7.4,amount:236.8,km:120545,station:'דלק',pay:'אשראי'}
+  );
+  DB.wash.push({id:uid(),demo:true,date:isoAgo(5),washType:'חיצונית',amount:35,location:'תחנת דלק',pay:'מזומן'});
+  DB.expense.push({id:uid(),demo:true,date:isoAgo(6),desc:'חניון',cat:'חניה',amount:25,pay:'מזומן'});
+  DB.delivery.push(
+    {id:uid(),demo:true,date:isoAgo(2),origin:'פיצה עגבניה',dest:'רחוב הרצל 15',amount:28,pay:'ביט',notes:''},
+    {id:uid(),demo:true,date:isoAgo(1),origin:'סופר יעד',dest:'שדרות בן גוריון 3',amount:22,pay:'מזומן',notes:''}
+  );
+  // demo records are local-only (never pushed to the cloud) so turning them
+  // off can never delete or overwrite any real synced data.
+  save();render();toast('נתוני דוגמה נטענו ✨ — אפשר לכבות מההגדרות בכל רגע');
+}
+function removeDemo(){
+  DB.trips=DB.trips.filter(r=>!r.demo);
+  DB.delivery=DB.delivery.filter(r=>!r.demo);
+  DB.fuel=DB.fuel.filter(r=>!r.demo);
+  DB.wash=DB.wash.filter(r=>!r.demo);
+  DB.expense=DB.expense.filter(r=>!r.demo);
+  save();render();toast('נתוני הדוגמה כובו 🧹');
+}
+function hasDemo(){return DB.trips.some(r=>r.demo)||DB.delivery.some(r=>r.demo)||DB.fuel.some(r=>r.demo)||DB.wash.some(r=>r.demo)||DB.expense.some(r=>r.demo);}
+function toggleDemo(){hasDemo()?removeDemo():addDemo();renderDemoRow();}
+function renderDemoRow(){
+  const t1=document.getElementById('demoT1'),t2=document.getElementById('demoT2');
+  if(!t1||!t2)return;
+  if(hasDemo()){t1.textContent='כיבוי נתוני דוגמה';t1.style.color='var(--red)';t2.textContent='הסרת רשומות הדוגמה וחזרה לנתונים האמיתיים';}
+  else{t1.textContent='טען נתוני דוגמה';t1.style.color='';t2.textContent='כדי לראות איך זה נראה מלא';}
+}
+function isoAgo(d){const x=new Date();x.setDate(x.getDate()-d);return x.toISOString().slice(0,10);}
+
+let toastT;
+function toast(msg,type){
+  const el=document.getElementById('toast');el.textContent=msg;el.className='toast show'+(type==='err'?' err':'');
+  clearTimeout(toastT);toastT=setTimeout(()=>el.className='toast'+(type==='err'?' err':''),2200);
+}
+
+// ===== theme (dark by default, lighter look during daytime) =====
+const THEME_KEY='tt_theme';
+function getThemeSetting(){return localStorage.getItem(THEME_KEY)||'auto';}
+function effectiveTheme(){
+  const s=getThemeSetting();
+  if(s==='light'||s==='dark')return s;
+  const h=new Date().getHours();
+  return (h>=6&&h<19)?'light':'dark';
+}
+function applyTheme(){
+  const eff=effectiveTheme();
+  document.body.classList.toggle('light',eff==='light');
+  const mc=document.querySelector('meta[name=theme-color]');
+  if(mc)mc.content=eff==='light'?'#7c3aed':'#5b21b6';
+  const lbl=document.getElementById('themeLabel');
+  if(lbl){const s=getThemeSetting();lbl.textContent=s==='auto'?'אוטומטי (לפי שעה)':(s==='light'?'בהיר':'כהה');}
+}
+const THEME_OPTS=[['auto','🌗','אוטומטי (לפי שעה)'],['light','☀️','בהיר'],['dark','🌙','כהה']];
+function openThemePicker(){
+  const curSel=getThemeSetting();
+  document.getElementById('themeOptions').innerHTML=THEME_OPTS.map(o=>
+    `<div class="set-row" onclick="pickTheme('${o[0]}')"><div class="ic">${o[1]}</div><div class="mid"><div class="t1">${o[2]}</div></div><div class="arrow">${curSel===o[0]?'✓':''}</div></div>`
+  ).join('');
+  document.getElementById('themeOverlay').classList.add('show');
+  document.getElementById('themeSheet').classList.add('show');
+}
+function closeThemePicker(){
+  document.getElementById('themeOverlay').classList.remove('show');
+  document.getElementById('themeSheet').classList.remove('show');
+}
+function pickTheme(v){
+  localStorage.setItem(THEME_KEY,v);
+  applyTheme();
+  closeThemePicker();
+  toast(v==='auto'?'ערכת נושא: אוטומטי 🎨':(v==='light'?'ערכת נושא: בהיר ☀️':'ערכת נושא: כהה 🌙'));
+}
+
+if('serviceWorker' in navigator){
+  try{
+    const sw="self.addEventListener('install',function(e){self.skipWaiting()});self.addEventListener('fetch',function(e){});";
+    const url=URL.createObjectURL(new Blob([sw],{type:'text/javascript'}));
+    navigator.serviceWorker.register(url).catch(function(){});
+  }catch(e){}
+}
+
+applyTheme();
+setInterval(applyTheme,5*60000); // keep "auto" theme correct if the app stays open across sunrise/sunset
+go('home');
+(async function(){
+  const ok=await ensureAuth();
+  if(ok){cloudPull();}else{showAuthGate();}
+})();
+setInterval(function(){if(SUPA_ON&&authGet())flushDirty();},30000); // retry any unsynced writes in the background
+</script>
+</body>
+</html>
