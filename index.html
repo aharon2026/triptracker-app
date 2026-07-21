@@ -548,7 +548,10 @@ document.querySelectorAll('#typeSel button').forEach(b=>{
 });
 
 const PAYS=['מזומן','אשראי','ביט','פייבוקס'];
-function payRow(){return '<div class="field"><label>אמצעי תשלום</label><div class="pay" id="payRow">'+PAYS.map(p=>'<button class="'+(p===payVal?'on':'')+'" onclick="pickPay(this,\''+p+'\')">'+p+'</button>').join('')+'</div></div>';}
+const PAY_UNPAID='עדיין לא שולם';
+// בנסיעות ובמשלוחים יש גם אפשרות "עדיין לא שולם" - למעקב אחרי תשלומים שטרם התקבלו
+function payList(){return (curType==='trip'||curType==='delivery')?PAYS.concat(PAY_UNPAID):PAYS;}
+function payRow(){return '<div class="field"><label>אמצעי תשלום</label><div class="pay" id="payRow">'+payList().map(p=>'<button class="'+(p===payVal?'on':'')+'" onclick="pickPay(this,\''+p+'\')">'+p+'</button>').join('')+'</div></div>';}
 function pickPay(el,p){payVal=p;document.querySelectorAll('#payRow button').forEach(x=>x.classList.remove('on'));el.classList.add('on');}
 const today=()=>new Date().toISOString().slice(0,10);
 const nowTimeStr=()=>{const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');};
@@ -583,6 +586,7 @@ function notesField(d){return `<div class="field"><label>הערות</label><text
 
 function buildForm(){
   const d=editRec||{};
+  if(!payList().includes(payVal))payVal='מזומן'; // אם עברו לסוג רשומה שאין בו "עדיין לא שולם"
   let h='';
   if(curType==='trip'){
     if(mode==='add'){
